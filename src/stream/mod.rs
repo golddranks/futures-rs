@@ -61,6 +61,7 @@ pub use self::filter_map::FilterMap;
 pub use self::flatten::Flatten;
 pub use self::fold::Fold;
 pub use self::for_each::ForEach;
+pub use self::for_each::with_name as for_each_with_name;
 pub use self::from_err::FromErr;
 pub use self::fuse::Fuse;
 pub use self::future::StreamFuture;

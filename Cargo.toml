@@ -19,6 +19,7 @@ travis-ci = { repository = "alexcrichton/futures-rs" }
 appveyor = { repository = "alexcrichton/futures-rs" }
 
 [dependencies]
+rand = "*"
 
 [features]
 use_std = []

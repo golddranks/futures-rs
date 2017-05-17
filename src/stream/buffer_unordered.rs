@@ -87,12 +87,17 @@ impl<S> BufferUnordered<S>
     fn poll_pending(&mut self)
                     -> Option<Poll<Option<<S::Item as IntoFuture>::Item>,
                                    S::Error>> {
+        println!("Buffer Unordered: start poll_pending: {:?}", self.pending);
         while let Some(idx) = self.pending.next() {
+            println!("Buffer Unordered: while beginning: {:?}", self.pending);
             let result = match self.futures[idx] {
                 Slot::Data(ref mut f) => {
                     let event = UnparkEvent::new(self.stack.clone(), idx);
-                    match task::with_unpark_event(event, || f.poll()) {
-                        Ok(Async::NotReady) => continue,
+                    match task::with_unpark_event(event, || { println!("Buffer Unordered: Polling the internal future."); f.poll() }) {
+                        Ok(Async::NotReady) => {
+                            println!("Buffer Unordered: not ready pending idx: {:?}. Continue.", idx);
+                            continue
+                            },
                         Ok(Async::Ready(e)) => Ok(Async::Ready(Some(e))),
                         Err(e) => Err(e),
                     }
@@ -102,8 +107,10 @@ impl<S> BufferUnordered<S>
             self.active -= 1;
             self.futures[idx] = Slot::Next(self.next_future);
             self.next_future = idx;
+            println!("Buffer Unordered: return ready pending idx: {:?}", idx);
             return Some(result)
         }
+        println!("Buffer Unordered: Everything done for pending futures.");
         None
     }
 
@@ -165,6 +172,7 @@ impl<S> Stream for BufferUnordered<S>
         // And finally, take a look at our stack of events, attempting to
         // process all of those.
         assert!(self.pending.next().is_none());
+        println!("Buffer Unordered: Let's process the stack");
         self.pending = self.stack.drain();
         if let Some(ret) = self.poll_pending() {
             return ret

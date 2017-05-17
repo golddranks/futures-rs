@@ -117,6 +117,7 @@ fn _assert_kinds() {
 /// is, this method can be dangerous to call outside of an implementation of
 /// `poll`.
 pub fn park() -> Task {
+    println!("Calling park!");
     with(|task| {
         Task {
             id: task.id,
@@ -152,6 +153,7 @@ impl fmt::Debug for Task {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Task")
          .field("id", &self.id)
+         .field("events", &self.events)
          .finish()
     }
 }
@@ -208,33 +210,37 @@ impl UnparkEvent {
     /// Construct an unpark event that will insert `id` into `set` when
     /// triggered.
     pub fn new(set: Arc<EventSet>, id: usize) -> UnparkEvent {
-        UnparkEvent {
+        let ue = UnparkEvent {
             set: set,
             item: id,
-        }
+        };
+        println!("Constructed an {:?}", ue);
+        ue
     }
 }
 
 impl fmt::Debug for UnparkEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("UnparkEvent")
-         .field("set", &"...")
+         .field("set", &self.set)
          .field("item", &self.item)
          .finish()
     }
 }
 
+use std::fmt::Debug;
+
 /// A concurrent set which allows for the insertion of `usize` values.
 ///
 /// `EventSet`s are used to communicate precise information about the event(s)
 /// that trigged a task notification. See `task::with_unpark_event` for details.
-pub trait EventSet: Send + Sync + 'static {
+pub trait EventSet: Send + Sync + Debug + 'static {
     /// Insert the given ID into the set
     fn insert(&self, id: usize);
 }
 
 // A collection of UnparkEvents to trigger on `unpark`
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Events {
     Zero,
     One(UnparkEvent),
@@ -327,14 +333,14 @@ impl<F: Future> Spawn<F> {
     /// yet. The `unpark` argument is used as a sink for notifications sent to
     /// this future. That is, while the future is being polled, any call to
     /// `task::park()` will return a handle that contains the `unpark`
-    /// specified.
+    /// specified.u
     ///
     /// If this function returns `NotReady`, then the `unpark` should have been
     /// scheduled to receive a notification when poll can be called again.
     /// Otherwise if `Ready` or `Err` is returned, the `Spawn` task can be
     /// safely destroyed.
     pub fn poll_future(&mut self, unpark: Arc<Unpark>) -> Poll<F::Item, F::Error> {
-        self.enter(&unpark, |f| f.poll())
+        self.enter(&unpark, |f| { println!("Polling the internal future of task."); f.poll()})
     }
 
     /// Waits for the internal future to complete, blocking this thread's

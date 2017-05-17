@@ -45,10 +45,12 @@ impl<A, B> Future for Select<A, B>
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         let (ret, is_a) = match self.inner {
             Some((ref mut a, ref mut b)) => {
+                println!("Select: Polling first!");
                 match a.poll() {
                     Err(a) => (Err(a), true),
                     Ok(Async::Ready(a)) => (Ok(a), true),
                     Ok(Async::NotReady) => {
+                        println!("Select: Polling second!");
                         match b.poll() {
                             Err(a) => (Err(a), false),
                             Ok(Async::Ready(a)) => (Ok(a), false),
